@@ -1,0 +1,21 @@
+version: "3.9"
+services:
+  gaia:
+    image: "gaiaapp/gaia"
+    ports: 
+      - "8080:8080"
+    environment:
+      - "GAIA_MONGODB_URI=mongodb://mongo/gaia"
+      - "GAIA_RUNNER_API_PASSWORD=123456"
+      - "SPRING_PROFILES_ACTIVE=github"
+      - "SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GITHUB_CLIENT_ID=a7f3903cd6eacb74fb0b"
+      - "SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GITHUB_CLIENT_SECRET=12f7483a2d8a85671296c24ee07211649594163a"
+  runner:
+    image: "gaiaapp/runner"
+    environment:
+      - "GAIA_URL=http://gaia:8080"
+      - "GAIA_RUNNER_API_PASSWORD=123456"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+  mongo:
+    image: "mongo:4.4"
