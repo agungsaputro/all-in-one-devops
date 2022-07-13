@@ -1,0 +1,55 @@
+#  Template maven-build
+
+#  This template allows you to test and build your Java project with Maven.
+#  The workflow allows running tests, code checkstyle and security scans on the default branch.
+
+# Prerequisites: pom.xml and appropriate project structure should exist in the repository.
+
+image: maven:3.6.3
+
+options:
+  docker: true
+
+pipelines:
+  default:
+    - parallel:
+      - step:
+          name: Build and Test
+          caches:
+            - maven
+          script:
+            - mvn -B verify --file pom.xml
+            - mvn install -DskipTests
+            - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+            - docker build -t $DOCKER_USERNAME/$DOCKER_IMAGE:$BITBUCKET_COMMIT .
+            - docker push $DOCKER_USERNAME/$DOCKER_IMAGE:$BITBUCKET_COMMIT
+            - echo "success push docker image"
+          after-script:
+              # Collect checkstyle results, if any, and convert to Bitbucket Code Insights.
+            - pipe: atlassian/checkstyle-report:0.3.0
+      - step:
+          name: Security Scan
+          script:
+            # Run a security scan for sensitive data.
+            # See more security tools at https://bitbucket.org/product/features/pipelines/integrations?&category=security
+            - pipe: atlassian/git-secrets-scan:0.5.1
+    - step:
+        name: Deploy Container
+        script:
+          - echo "login server"
+          - pipe: atlassian/ssh-run:0.4.0
+            variables:
+              SSH_USER: $SSH_USER
+              SERVER: $SERVER
+              SSH_KEY: $SSH_SERVER
+              MODE: 'script'
+              COMMAND: 'deploy.sh'
+              ENV_VARS: 
+                DOCKER_USERNAME=${DOCKER_USERNAME}
+                DOCKER_PASSWORD=${DOCKER_PASSWORD}
+                DOCKER_IMAGE=${DOCKER_IMAGE}
+                BITBUCKET_COMMIT=${BITBUCKET_COMMIT}
+                CONTAINER_NAME=${CONTAINER_NAME}
+                SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
+                SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+                SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}

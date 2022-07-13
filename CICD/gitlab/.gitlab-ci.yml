@@ -1,0 +1,58 @@
+stages:
+  - build_push
+  - deploy_development
+  - deploy_production
+
+variables:
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_REPO: docker/image
+  SERVICE_NAME: app
+build_push:
+  stage: build_push
+  image: docker:19.03-dind
+  services:
+    - name: docker:19.03-dind
+  script:
+    - echo "$REGISTRY_PASSWORD" | docker login $REGISTRY_SERVER -u $REGISTRY_USERNAME --password-stdin
+    - echo "Building docker image"
+    - docker build -t $DOCKER_REPO:$CI_COMMIT_SHORT_SHA .
+    - echo "Pushing docker image to registry"
+    - if [ $CI_COMMIT_BRANCH = "development" ]; then docker push $DOCKER_REPO:$CI_COMMIT_SHORT_SHA ; fi
+    - if [ $CI_COMMIT_BRANCH = "master" ]; then docker push $DOCKER_REPO:$CI_COMMIT_SHORT_SHA ; fi
+    - if [ -n "$CI_COMMIT_TAG" ]; then docker push $DOCKER_REPO:$CI_COMMIT_TAG ; fi
+    - echo "Docker image has been successfully pushed to registry"
+  retry:
+    max: 2
+    when: always
+  only:
+    - development
+    - master
+
+deploy_development:
+  stage: deploy_development
+  image:
+    name: bitnami/kubectl:1.19.11
+    entrypoint: [""]
+  script:
+    - echo -n $KUBECONFIG_DEV | base64 -d > ./config
+    - echo "Deploying Service"
+    - kubectl --kubeconfig ./config set image deployment/$SERVICE_NAME $SERVICE_NAME=$DOCKER_REPO:$CI_COMMIT_SHORT_SHA
+    - echo "Service $SERVICE_NAME has been deployed to DEV"
+  retry:
+    max: 2
+    when: always
+  only:
+    - development
+
+deploy_production:
+  stage: deploy_production
+  image:
+    name: bitnami/kubectl:1.19.11
+    entrypoint: [""]
+  when: manual
+  script:
+    - echo -n $KUBECONFIG_PROD | base64 -d > ./config
+    - kubectl --kubeconfig ./config set image deployment/$SERVICE_NAME $SERVICE_NAME=$DOCKER_REPO:$CI_COMMIT_SHORT_SHA
+    - echo "Service $SERVICE_NAME has been deployed to PROD"
+  only:
+    - master

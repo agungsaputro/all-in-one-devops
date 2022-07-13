@@ -1,0 +1,57 @@
+pipeline {
+  agent any
+  environment {
+     // short sha - 7 digit
+    SERVICE_NAME = "test-jenkins" //service/app di kubernetes
+    DOCKER_REPO = "docker/app" //repository docker
+    }
+  stages {
+      stage("build_push") {
+          steps {
+              script {
+                echo "build images & push to docker hub"
+                //username with password (credentials)
+                withCredentials([usernamePassword(credentialsId: 'docker-hub', passwordVariable: 'PASSDOCK', usernameVariable:'USERDOCK')]) {
+                  sh 'docker build -t rectapanca/testing:${GIT_COMMIT} .'
+                  sh 'echo $PASSDOCK | docker login -u $USERDOCK --password-stdin'
+                  sh 'docker push rectapanca/testing:${GIT_COMMIT}'
+                }
+              }
+          }
+      }
+      stage("clean up images") {
+          steps {
+              script {
+                  // remove images local yg sudah di push ke repository docker
+                  sh 'docker rmi rectapanca/testing:${GIT_COMMIT}'
+                }
+              }
+          }
+      stage("deploy to kubernetes") {
+          agent { 
+              docker { 
+                image 'bitnami/kubectl:1.19.11'
+                args '--entrypoint=\'\''
+                }
+            }
+          when {
+             expression {
+                 return env.GIT_BRANCH == 'origin/main'
+                }
+              } 
+          steps {
+              script {
+                timeout(time: 1, unit: "MINUTES") {
+                    input message: 'Yakin Deploy ke Production?', ok: 'Gas Lah...'
+                    }
+                //secret text di (credentials)
+                withCredentials([string(credentialsId: 'kubeconfigs', variable: 'KUBECONFIG')]) {
+                  sh 'echo -n $KUBECONFIG | base64 -d > ./config'
+                  sh 'kubectl --kubeconfig ./config set image deployment/${SERVICE_NAME} ${SERVICE_NAME}=${DOCKER_REPO}:${GIT_COMMIT}'
+                  sh 'echo "Service ${SERVICE_NAME} has been deployed" '
+                  }
+                }
+              }
+          }
+      }
+}
