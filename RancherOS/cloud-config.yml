@@ -1,0 +1,26 @@
+#cloud-config
+
+hostname: rancher
+
+rancher:
+  network:
+    interfaces:
+      eth0:
+        address: 10.1.0.100/24
+        gateway: 10.1.0.1
+        dhcp: false
+    dns:
+      nameservers:
+        - 10.1.0.101
+        - 1.1.1.1
+        - 9.9.9.9
+
+ssh_authorized_keys:
+  - ssh-rsa <MY_PUBLIC_KEY>
+
+
+#validasi
+#sudo ros config validate -i cloud-config.yml
+
+#install
+#sudo ros install -c cloud-config.yml -d /dev/sda
