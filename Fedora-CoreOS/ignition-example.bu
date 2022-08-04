@@ -1,0 +1,54 @@
+variant: fcos
+version: 1.4.0
+passwd:
+  users:
+    - name: core
+      ssh_authorized_keys:
+        - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDFzbV8tMnSKvaeWgdVQqlX24eu0gxq29x4gUGo6QGCE01HEmUzL7IX/2bLJGPie4uApZ2zsfvZ2ll/gs9TT3ftqjNpWWWSY7XdbqE1RdIHXJgdW+w04WhYR5IVU/AlyiDDy3zov3aktmfpf9ZUer6Vxa2SipOl/F/WblTK74Cs4ccE3lt3xWnYVl8s9pFyBObMK8SXJ+L9oWBg+WP6yx5xAPLOcYOUzyvqg/yqQq5XUK8PGcCo1TOIpXM4QrtukfVkCDtrA4hb9/2Ab1LG1x5GEqzONhNMSKcnR7l2nscxVCYGANm/xTDHjLt6EkRKxVEBYTUh6I6YZZOa9uQmMh2AGif9om2JRQiB1/dNP9H+Tlb1AoNSqcvFpvwJainyvbOVTTJBL8QupogL7z1FDr32LhZnQ1z6wJnLmyp9v6mj8T6vP9psGwamK5E6iwphfkPMQvZ5cBRlzAQpNyNRHmTsZi6GcxIvOI0TDG9h0gVGamP77J05qYr5Ea/zRZCsIDM= agungds@DESKTOP-GSIKM7P
+      password_hash: $2y$10$gLmtEV2V5P87LKVST1LHieI55u6pqWAWKfBbQW6B7gk7suL5Fnin.
+storage:
+  files:
+    - path: /etc/ssh/sshd_config.d/20-enable-passwords.conf
+      mode: 0644
+      contents:
+        inline: |
+          # Fedora CoreOS disables SSH password login by default.
+          # Enable it.
+          # This file must sort before 40-disable-passwords.conf.
+          PasswordAuthentication yes
+    - path: /etc/profile.d/systemd-pager.sh
+      mode: 0644
+      contents:
+        inline: |
+          # Tell systemd to not use a pager when printing information
+          export SYSTEMD_PAGER=cat
+    - path: /etc/sysctl.d/20-silence-audit.conf
+      mode: 0644
+      contents:
+        inline: |
+          # Raise console message logging level from DEBUG (7) to WARNING (4)
+          # to hide audit messages from the interactive console
+          kernel.printk=4
+    - path: /etc/hostname
+      mode: 0644
+      contents:
+        inline: |
+          1-basic
+    - path: /etc/NetworkManager/system-connections/ens2.nmconnection
+      mode: 0600
+      contents:
+        inline: |
+          [connection]
+          id=ens2
+          type=ethernet
+          interface-name=ens2
+          [ipv4]
+          address1=172.16.35.119/24,172.16.35.1
+          dns=203.153.49.109,203.217.140.14;
+          dns-search=
+          may-fail=false
+          method=manual
+          [ipv6]
+          addr-gen-mode=eui64
+          dns-search=
+          method=disabled
