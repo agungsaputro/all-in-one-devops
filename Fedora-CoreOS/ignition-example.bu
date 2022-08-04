@@ -39,9 +39,9 @@ storage:
       contents:
         inline: |
           [connection]
-          id=ens2
+          id=ens18
           type=ethernet
-          interface-name=ens2
+          interface-name=Wired connection 1
           [ipv4]
           address1=172.16.35.119/24,172.16.35.1
           dns=203.153.49.109,203.217.140.14;
